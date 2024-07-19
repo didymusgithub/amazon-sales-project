@@ -36,7 +36,11 @@ def clean_data(df):
             df['YearMonth'] = df['Order Date'].dt.to_period('M')
         else:
             raise ValueError("Column 'Order Date' not found in the dataset.")
-        
+
+        # Ensure 'Total Revenue' is numeric
+        df['Total Revenue'] = pd.to_numeric(df['Total Revenue'], errors='coerce')
+        df.dropna(subset=['Total Revenue'], inplace=True)
+
         print("Data cleaned successfully.")
         return df
     except Exception as e:
@@ -67,7 +71,8 @@ def analyze_sales_trends(df):
         plt.show()
 
         # Yearly month-wise sales trend
-        yearly_month_sales = df.groupby('YearMonth')['Total Revenue'].sum()
+        df['YearMonthStr'] = df['YearMonth'].astype(str)
+        yearly_month_sales = df.groupby('YearMonthStr')['Total Revenue'].sum()
         plt.figure(figsize=(14, 8))
         sns.lineplot(data=yearly_month_sales)
         plt.title('Yearly Month-wise Sales Trend')
@@ -80,9 +85,13 @@ def analyze_sales_trends(df):
     except Exception as e:
         print(f"Error in sales trend analysis: {e}")
 
-# Function to find key metrics and correlations
+# Function to analyze key metrics and correlations
 def analyze_key_metrics(df):
     try:
+        # Ensure 'Total Revenue' is numeric
+        if df['Total Revenue'].dtype != 'float64' and df['Total Revenue'].dtype != 'int64':
+            df['Total Revenue'] = pd.to_numeric(df['Total Revenue'], errors='coerce')
+
         # Key metrics
         total_sales = df['Total Revenue'].sum()
         average_order_value = df['Total Revenue'].mean()
@@ -93,7 +102,8 @@ def analyze_key_metrics(df):
         print(f"Total Orders: {total_orders}")
 
         # Correlation analysis
-        correlation_matrix = df.corr()
+        df_numeric = df.select_dtypes(include=[np.number])
+        correlation_matrix = df_numeric.corr()
         plt.figure(figsize=(12, 8))
         sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', linewidths=0.5)
         plt.title('Correlation Matrix')
